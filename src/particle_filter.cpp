@@ -21,7 +21,6 @@ using namespace std;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   num_particles = 100;
-  is_initialized = false;
   weights.assign(num_particles, 1);
 
   double std_x     = std[0];
@@ -49,6 +48,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     particle.weight = weights[i];
     particles.push_back(particle);
   }
+
+  is_initialized = true;
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -71,9 +72,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     double std_y     = std_pos[1];
     double std_theta = std_pos[2];
 
-    normal_distribution<double> noise_x(x, std_x);
-    normal_distribution<double> noise_y(y, std_y);
-    normal_distribution<double> noise_theta(theta, std_theta);
+    normal_distribution<double> noise_x(xf, std_x);
+    normal_distribution<double> noise_y(yf, std_y);
+    normal_distribution<double> noise_theta(thetaf, std_theta);
 
     default_random_engine gen;
 
@@ -84,11 +85,22 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
-	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the 
-	//   observed measurement to this particular landmark.
-	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
-	//   implement this method and use it as a helper during the updateWeights phase.
+  for (int i = 0; i < observations.size(); i++) {
+    LandmarkObs obs = observations[i];
 
+    int minId = 0;
+    double minDist = DBL_MAX;
+    for (int j = 0; j < predicted.size(); j++) {
+      LandmarkObs pred = predicted[j];
+
+      double newDist = dist(pred.x, pred.y, obs.x, obs.y);
+      if (newDist < minDist) {
+        mindist = newDist;
+        minId = pred.id;
+      }
+    }
+    obs.id = minId;
+  }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 

@@ -66,7 +66,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
       xf = p.x + (velocity/yaw_rate)*(sin(p.theta + yaw_rate * delta_t) - sin(p.theta));
       yf = p.y + (velocity/yaw_rate)*(cos(p.theta) - cos(p.theta + yaw_rate*delta_t));
     }
-    thtetaf = p.theta + yaw_rate*delta_t;
+    thetaf = p.theta + yaw_rate*delta_t;
 
     double std_x     = std_pos[0];
     double std_y     = std_pos[1];
@@ -89,13 +89,13 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
     LandmarkObs obs = observations[i];
 
     int minId = 0;
-    double minDist = DBL_MAX;
+    double minDist = numeric_limits<double>::max();
     for (int j = 0; j < predicted.size(); j++) {
       LandmarkObs pred = predicted[j];
 
       double newDist = dist(pred.x, pred.y, obs.x, obs.y);
       if (newDist < minDist) {
-        mindist = newDist;
+        minDist = newDist;
         minId = pred.id;
       }
     }
@@ -104,17 +104,53 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
-		const std::vector<LandmarkObs> &observations, const Map &map_landmarks) {
-	// TODO: Update the weights of each particle using a mult-variate Gaussian distribution. You can read
-	//   more about this distribution here: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
-	// NOTE: The observations are given in the VEHICLE'S coordinate system. Your particles are located
-	//   according to the MAP'S coordinate system. You will need to transform between the two systems.
-	//   Keep in mind that this transformation requires both rotation AND translation (but no scaling).
-	//   The following is a good resource for the theory:
-	//   https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
-	//   and the following is a good resource for the actual equation to implement (look at equation 
-	//   3.33
-	//   http://planning.cs.uiuc.edu/node99.html
+		const std::vector<LandmarkObs> &observations, const Map &map) {
+
+  double sigx = std_landmark[0];
+  double sigy = std_landmark[1];
+
+  for (int i = 0; i < num_particles; i++) {
+    Particle particle = particles[i];
+
+    vector<LandmarkObs> predicted;
+    for (int j = 0; j < map.landmark_list.size(); j++) {
+      Map::single_landmark_s landmark = map.landmark_list[j];
+      double lpdist = dist(particle.x, particle.y, landmark.x_f, landmark.y_f);
+      if (lpdist < sensor_range) {
+        predicted.push_back(LandmarkObs{landmark.id_i, landmark.x_f, landmark.y_f});
+      }
+    }
+
+    vector<LandmarkObs> actual;
+    for (int j = 0; j < observations.size(); j++) {
+      LandmarkObs obs = observations[j];
+      double xm = particle.x + cos(particle.theta)*obs.x - sin(particle.theta)*obs.y;
+      double ym = particle.y + sin(particle.theta)*obs.x + cos(particle.theta)*obs.y;
+      actual.push_back(LandmarkObs{obs.id, xm, ym});
+    }
+
+    dataAssociation(predicted, actual);
+
+    for (int j = 0; j < actual.size(); j++) {
+      LandmarkObs obs = actual[j];
+
+      double lx = 0.0;
+      double ly = 0.0;
+      for (int k = 0; k < predicted.size(); k++) {
+        LandmarkObs pred = predicted[k];
+        if (pred.id == obs.id) {
+          lx = pred.x;
+          ly = pred.y;
+          break;
+        }
+      }
+
+      double gaussNorm = (1/(2*M_PI*sigx*sigy));
+      double weight = gaussNorm * exp(-(pow(particle.x-lx,2)/(2*pow(sigx,2)) + pow(particle.y-ly,2)/(2*pow(sigy,2))));
+
+      particle.weight *= weight;
+    }
+  }
 }
 
 void ParticleFilter::resample() {
@@ -124,8 +160,8 @@ void ParticleFilter::resample() {
 
 }
 
-Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)
-{
+Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, 
+    std::vector<double> sense_x, std::vector<double> sense_y) {
 	//particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
 	// associations: The landmark id that goes along with each listed association
 	// sense_x: the associations x mapping already converted to world coordinates

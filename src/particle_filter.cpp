@@ -25,7 +25,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	normal_distribution<double> dist_y(y, std_y);
 	normal_distribution<double> dist_theta(theta, std_theta);
 
-  default_random_engine gen;
+  random_device rd;
+  default_random_engine gen(rd());
 
   // Initialize particles randomly around the normal distribution
   for (int i = 0; i < num_particles; i++) {
@@ -46,7 +47,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
-  default_random_engine gen;
+  random_device rd;
+  default_random_engine gen(rd());
 
   for (int i = 0; i < num_particles; i++) {
     Particle p = particles[i];
@@ -109,10 +111,16 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     vector<LandmarkObs> predicted;
     for (int j = 0; j < map.landmark_list.size(); j++) {
       Map::single_landmark_s landmark = map.landmark_list[j];
+
       double lpdist = dist(particle.x, particle.y, landmark.x_f, landmark.y_f);
       if (lpdist < sensor_range) {
         predicted.push_back(LandmarkObs{landmark.id_i, landmark.x_f, landmark.y_f});
       }
+    }
+
+    if (predicted.size() <= 0) {
+      weights[i] = 0;
+      continue;
     }
 
     vector<LandmarkObs> actual;
@@ -150,7 +158,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 }
 
 void ParticleFilter::resample() {
-  default_random_engine gen;
+  random_device rd;
+  default_random_engine gen(rd());
   discrete_distribution<int> dist(weights.begin(), weights.end());
 
 	std::vector<Particle> newParticles;
@@ -159,7 +168,7 @@ void ParticleFilter::resample() {
     newParticles.push_back(particles[index]);
   }
 
-  particles = newParticles;
+  particles = std::move(newParticles);
 }
 
 Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, 

@@ -80,7 +80,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   }
 }
 
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
+void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, vector<LandmarkObs>& observations) {
   for (int i = 0; i < observations.size(); i++) {
     LandmarkObs obs = observations[i];
 
@@ -100,10 +100,11 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
-		const std::vector<LandmarkObs> &observations, const Map &map) {
+		const vector<LandmarkObs> &observations, const Map &map) {
 
   double sigx = std_landmark[0];
   double sigy = std_landmark[1];
+  double gaussNorm = 1/(2*M_PI*sigx*sigy);
 
   for (int i = 0; i < num_particles; i++) {
     Particle particle = particles[i];
@@ -149,7 +150,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         }
       }
 
-      double gaussNorm = 1/(2*M_PI*sigx*sigy);
       double weight = gaussNorm * exp(-(pow(obs.x-lx,2)/(2*pow(sigx,2)) + pow(obs.y-ly,2)/(2*pow(sigy,2))));
       weights[i] *= weight;
     }
@@ -162,17 +162,17 @@ void ParticleFilter::resample() {
   default_random_engine gen(rd());
   discrete_distribution<int> dist(weights.begin(), weights.end());
 
-	std::vector<Particle> newParticles;
+	vector<Particle> newParticles;
   for (int i = 0; i < num_particles; i++) {
     int index = dist(gen);
     newParticles.push_back(particles[index]);
   }
 
-  particles = std::move(newParticles);
+  particles = move(newParticles);
 }
 
-Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, 
-    std::vector<double> sense_x, std::vector<double> sense_y) {
+Particle ParticleFilter::SetAssociations(Particle particle, vector<int> associations, 
+    vector<double> sense_x, vector<double> sense_y) {
 	//particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
 	// associations: The landmark id that goes along with each listed association
 	// sense_x: the associations x mapping already converted to world coordinates

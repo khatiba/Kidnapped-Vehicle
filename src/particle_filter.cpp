@@ -1,10 +1,3 @@
-/*
- * particle_filter.cpp
- *
- *  Created on: Dec 12, 2016
- *      Author: Tiffany Huang
- */
-
 #include <random>
 #include <algorithm>
 #include <iostream>
@@ -20,8 +13,8 @@
 using namespace std;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-  num_particles = 100;
-  weights.assign(num_particles, 1);
+  num_particles = 10;
+  weights.assign(num_particles, 1.0);
 
   double std_x     = std[0];
   double std_y     = std[1];
@@ -53,34 +46,35 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
+  default_random_engine gen;
+
   for (int i = 0; i < num_particles; i++) {
     Particle p = particles[i];
     double xf;
     double yf;
     double thetaf;
 
-    if (abs(yaw_rate) < 0.001) {
+    if (fabs(yaw_rate) < 0.001) {
       xf = p.x + velocity*delta_t*cos(p.theta);
       yf = p.y + velocity*delta_t*sin(p.theta);
+      thetaf = p.theta;
     } else {
-      xf = p.x + (velocity/yaw_rate)*(sin(p.theta + yaw_rate * delta_t) - sin(p.theta));
+      xf = p.x + (velocity/yaw_rate)*(sin(p.theta + yaw_rate*delta_t) - sin(p.theta));
       yf = p.y + (velocity/yaw_rate)*(cos(p.theta) - cos(p.theta + yaw_rate*delta_t));
+      thetaf = p.theta + yaw_rate*delta_t;
     }
-    thetaf = p.theta + yaw_rate*delta_t;
 
     double std_x     = std_pos[0];
     double std_y     = std_pos[1];
     double std_theta = std_pos[2];
 
-    normal_distribution<double> noise_x(xf, std_x);
-    normal_distribution<double> noise_y(yf, std_y);
-    normal_distribution<double> noise_theta(thetaf, std_theta);
+    normal_distribution<double> noise_x(0, std_x);
+    normal_distribution<double> noise_y(0, std_y);
+    normal_distribution<double> noise_theta(0, std_theta);
 
-    default_random_engine gen;
-
-    p.x = xf + noise_x(gen);
-    p.y = yf + noise_y(gen);
-    p.theta = thetaf + noise_theta(gen);
+    particles[i].x = xf + noise_x(gen);
+    particles[i].y = yf + noise_y(gen);
+    particles[i].theta = thetaf + noise_theta(gen);
   }
 }
 
@@ -99,7 +93,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
         minId = pred.id;
       }
     }
-    obs.id = minId;
+    observations[i].id = minId;
   }
 }
 
@@ -131,6 +125,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
     dataAssociation(predicted, actual);
 
+    weights[i] = 1.0;
+
     for (int j = 0; j < actual.size(); j++) {
       LandmarkObs obs = actual[j];
 
@@ -145,19 +141,24 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         }
       }
 
-      double gaussNorm = (1/(2*M_PI*sigx*sigy));
-      double weight = gaussNorm * exp(-(pow(particle.x-lx,2)/(2*pow(sigx,2)) + pow(particle.y-ly,2)/(2*pow(sigy,2))));
-
-      particle.weight *= weight;
+      double gaussNorm = 1/(2*M_PI*sigx*sigy);
+      double weight = gaussNorm * exp(-(pow(obs.x-lx,2)/(2*pow(sigx,2)) + pow(obs.y-ly,2)/(2*pow(sigy,2))));
+      weights[i] *= weight;
     }
   }
 }
 
 void ParticleFilter::resample() {
-	// TODO: Resample particles with replacement with probability proportional to their weight. 
-	// NOTE: You may find std::discrete_distribution helpful here.
-	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+  default_random_engine gen;
+  discrete_distribution<int> dist(weights.begin(), weights.end());
 
+	std::vector<Particle> newParticles;
+  for (int i = 0; i < num_particles; i++) {
+    int index = dist(gen);
+    newParticles.push_back(particles[index]);
+  }
+
+  particles = newParticles;
 }
 
 Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, 
@@ -172,37 +173,37 @@ Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> ass
 	particle.sense_x.clear();
 	particle.sense_y.clear();
 
-	particle.associations= associations;
+	particle.associations = associations;
  	particle.sense_x = sense_x;
  	particle.sense_y = sense_y;
 
  	return particle;
 }
 
-string ParticleFilter::getAssociations(Particle best)
-{
-	vector<int> v = best.associations;
-	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<int>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
+string ParticleFilter::getAssociations(Particle best) {
+  vector<int> v = best.associations;
+  stringstream ss;
+  copy( v.begin(), v.end(), ostream_iterator<int>(ss, " "));
+  string s = ss.str();
+  s = s.substr(0, s.length()-1);  // get rid of the trailing space
+  return s;
 }
-string ParticleFilter::getSenseX(Particle best)
-{
-	vector<double> v = best.sense_x;
-	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
+
+string ParticleFilter::getSenseX(Particle best) {
+  vector<double> v = best.sense_x;
+  stringstream ss;
+  copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
+  string s = ss.str();
+  s = s.substr(0, s.length()-1);  // get rid of the trailing space
+  return s;
 }
-string ParticleFilter::getSenseY(Particle best)
-{
-	vector<double> v = best.sense_y;
-	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
+
+string ParticleFilter::getSenseY(Particle best) {
+  vector<double> v = best.sense_y;
+  stringstream ss;
+  copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
+  string s = ss.str();
+  s = s.substr(0, s.length()-1);  // get rid of the trailing space
+  return s;
 }
+

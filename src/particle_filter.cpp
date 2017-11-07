@@ -13,7 +13,7 @@
 using namespace std;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-  num_particles = 10;
+  num_particles = 20;
   weights.assign(num_particles, 1.0);
 
   double std_x     = std[0];

@@ -16,11 +16,11 @@ Docker is the easiest, simply cd to the directory where you clone this repo and 
 ``docker run -t -d --rm -p 4567:4567 -v `pwd`:/work udacity/controls_kit:latest``
 
 #### Running the Program
-Execute the following in the top directory of the project:
+Connect to the docker container (`docker exec -ti CONTAINER_ID /bin/bash`) and execute the following in the top directory of the project:
 
-1. ./clean.sh
-2. ./build.sh
-3. ./run.sh
+1. `./clean.sh`
+2. `./build.sh`
+3. `./run.sh`
 
 
 #### Overview of the Code

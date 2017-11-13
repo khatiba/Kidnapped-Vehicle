@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
-#include <math.h> 
+#include <math.h>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -21,9 +21,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   double std_theta = std[2];
 
   // Create normal distribution around the initial GPS coordinates
-	normal_distribution<double> dist_x(x, std_x);
-	normal_distribution<double> dist_y(y, std_y);
-	normal_distribution<double> dist_theta(theta, std_theta);
+  normal_distribution<double> dist_x(x, std_x);
+  normal_distribution<double> dist_y(y, std_y);
+  normal_distribution<double> dist_theta(theta, std_theta);
 
   random_device rd;
   default_random_engine gen(rd());
@@ -99,8 +99,8 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, vector<Landm
   }
 }
 
-void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
-		const vector<LandmarkObs> &observations, const Map &map) {
+void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
+    const vector<LandmarkObs> &observations, const Map &map) {
 
   double sigx = std_landmark[0];
   double sigy = std_landmark[1];
@@ -162,7 +162,7 @@ void ParticleFilter::resample() {
   default_random_engine gen(rd());
   discrete_distribution<int> dist(weights.begin(), weights.end());
 
-	vector<Particle> newParticles;
+  vector<Particle> newParticles;
   for (int i = 0; i < num_particles; i++) {
     int index = dist(gen);
     newParticles.push_back(particles[index]);
@@ -171,23 +171,23 @@ void ParticleFilter::resample() {
   particles = move(newParticles);
 }
 
-Particle ParticleFilter::SetAssociations(Particle particle, vector<int> associations, 
+Particle ParticleFilter::SetAssociations(Particle particle, vector<int> associations,
     vector<double> sense_x, vector<double> sense_y) {
-	//particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
-	// associations: The landmark id that goes along with each listed association
-	// sense_x: the associations x mapping already converted to world coordinates
-	// sense_y: the associations y mapping already converted to world coordinates
+  //particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
+  // associations: The landmark id that goes along with each listed association
+  // sense_x: the associations x mapping already converted to world coordinates
+  // sense_y: the associations y mapping already converted to world coordinates
 
-	//Clear the previous associations
-	particle.associations.clear();
-	particle.sense_x.clear();
-	particle.sense_y.clear();
+  //Clear the previous associations
+  particle.associations.clear();
+  particle.sense_x.clear();
+  particle.sense_y.clear();
 
-	particle.associations = associations;
- 	particle.sense_x = sense_x;
- 	particle.sense_y = sense_y;
+  particle.associations = associations;
+  particle.sense_x = sense_x;
+  particle.sense_y = sense_y;
 
- 	return particle;
+  return particle;
 }
 
 string ParticleFilter::getAssociations(Particle best) {

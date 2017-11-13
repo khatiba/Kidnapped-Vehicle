@@ -145,6 +145,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       double weight = gaussNorm * exp(-(pow(obs.x-lx,2)/(2*pow(sigx,2)) + pow(obs.y-ly,2)/(2*pow(sigy,2))));
       weights[i] *= weight;
     }
+    particles[i].weight = weights[i];
   }
 }
 
